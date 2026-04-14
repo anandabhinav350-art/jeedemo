@@ -1,0 +1,1233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JEE Study Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f14;
+    --bg2: #141720;
+    --bg3: #1c2030;
+    --bg4: #232840;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.13);
+    --text: #e8eaf2;
+    --muted: #7b82a0;
+    --accent: #6c8aff;
+    --accent-alpha: rgba(108, 138, 255, 0.25);
+    --accent2: #a78bfa;
+    --green: #34d399;
+    --amber: #fbbf24;
+    --red: #f87171;
+    --pink: #f472b6;
+    --mono: 'Space Mono', monospace;
+    --sans: 'DM Sans', sans-serif;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 15px; min-height: 100vh; overflow-x: hidden; }
+  
+  /* LAYOUT */
+  .app { display: grid; grid-template-columns: 220px 1fr; min-height: 100vh; }
+  
+  /* SIDEBAR */
+  .sidebar {
+    background: var(--bg2); border-right: 1px solid var(--border);
+    padding: 2rem 1rem; display: flex; flex-direction: column; gap: 0.5rem;
+    position: sticky; top: 0; height: 100vh; overflow-y: auto;
+  }
+  .sidebar-brand { padding: 0 0.75rem 1.5rem; border-bottom: 1px solid var(--border); margin-bottom: 0.5rem; }
+  .brand-tag { font-family: var(--mono); font-size: 10px; color: var(--accent); letter-spacing: 3px; text-transform: uppercase; }
+  .brand-name { font-size: 20px; font-weight: 600; line-height: 1.2; margin-top: 4px; }
+  .brand-name span { color: var(--accent2); }
+  
+  .nav-btn {
+    background: none; border: none; color: var(--muted);
+    padding: 0.65rem 0.75rem; border-radius: var(--radius-sm);
+    cursor: pointer; font-family: var(--sans); font-size: 13.5px; font-weight: 500;
+    text-align: left; display: flex; align-items: center; gap: 10px; width: 100%;
+    transition: all 0.2s ease;
+  }
+  .nav-btn:hover { background: var(--bg3); color: var(--text); }
+  .nav-btn.active { background: rgba(108,138,255,0.12); color: var(--accent); }
+  .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+  .nav-section-label { font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; padding: 1rem 0.75rem 0.3rem; }
+  
+  .sidebar-footer { margin-top: auto; padding-top: 1rem; border-top: 1px solid var(--border); }
+  .date-display { padding: 0.75rem; background: var(--bg3); border-radius: var(--radius-sm); }
+  .date-day { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+  .date-full { font-size: 13px; font-weight: 500; margin-top: 2px; }
+  
+  /* MAIN */
+  .main { padding: 2rem 2.5rem; overflow-y: auto; }
+  .section-header { display: flex; align-items: center; gap: 12px; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+  .section-icon { font-size: 22px; }
+  .section-title { font-size: 22px; font-weight: 600; }
+  .section-subtitle { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  
+  /* PAGE visibility & ANIMATION */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .page { display: none; }
+  .page.active { display: block; animation: fadeIn 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+  
+  /* CARDS */
+  .card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem 1.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+  .card-sm { padding: 1rem 1.25rem; }
+  
+  /* ===== DASHBOARD ===== */
+  .readiness-block {
+    background: linear-gradient(135deg, #1a1d2e 0%, #1c2040 100%);
+    border: 1px solid rgba(108,138,255,0.2); border-radius: var(--radius);
+    padding: 2rem; margin-bottom: 1.5rem; position: relative; overflow: hidden;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+  }
+  .readiness-block::before {
+    content: ''; position: absolute; top: -60px; right: -60px; width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(108,138,255,0.08) 0%, transparent 70%); pointer-events: none;
+  }
+  .readiness-top { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem; }
+  .readiness-label { font-family: var(--mono); font-size: 11px; letter-spacing: 2px; color: var(--accent); text-transform: uppercase; }
+  .readiness-score { font-family: var(--mono); font-size: 64px; font-weight: 700; line-height: 1; color: var(--text); }
+  .readiness-score span { font-size: 28px; color: var(--muted); }
+  .readiness-summary { max-width: 420px; }
+  .readiness-grade { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; letter-spacing: 1px; font-family: var(--mono); margin-top: 8px; margin-bottom: 12px; }
+  .grade-A { background: rgba(52,211,153,0.15); color: var(--green); border: 1px solid rgba(52,211,153,0.3); }
+  .grade-B { background: rgba(251,191,36,0.15); color: var(--amber); border: 1px solid rgba(251,191,36,0.3); }
+  .grade-C { background: rgba(248,113,113,0.15); color: var(--red); border: 1px solid rgba(248,113,113,0.3); }
+  .readiness-message { font-size: 14px; color: var(--muted); line-height: 1.6; }
+  .progress-track { margin-top: 1.5rem; background: rgba(255,255,255,0.06); border-radius: 99px; height: 8px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 99px; transition: width 1s cubic-bezier(0.4,0,0.2,1); }
+  
+  .metrics-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
+  .metric-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; transition: transform 0.2s; }
+  .metric-card:hover { transform: translateY(-2px); }
+  .metric-label { font-size: 11px; color: var(--muted); font-family: var(--mono); letter-spacing: 1px; text-transform: uppercase; }
+  .metric-value { font-family: var(--mono); font-size: 28px; font-weight: 700; margin: 8px 0 4px; }
+  .metric-sub { font-size: 12px; color: var(--muted); }
+  .metric-bar { height: 3px; background: rgba(255,255,255,0.07); border-radius: 99px; margin-top: 10px; }
+  .metric-bar-fill { height: 100%; border-radius: 99px; transition: width 0.8s ease; }
+  
+  /* ===== DAILY TASKS ===== */
+  .week-strip { display: flex; gap: 8px; margin-bottom: 1.5rem; flex-wrap: wrap; }
+  .day-pill {
+    padding: 6px 14px; border-radius: 99px; font-size: 13px; font-weight: 500; cursor: pointer;
+    border: 1px solid var(--border2); background: var(--bg2); color: var(--muted);
+    transition: all 0.15s; font-family: var(--mono); user-select: none;
+  }
+  .day-pill:hover { border-color: var(--accent); color: var(--accent); }
+  .day-pill:active { transform: scale(0.95); }
+  .day-pill.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .day-pill.today { border-color: var(--accent2); }
+  .day-pill.has-data::after { content: '•'; color: var(--green); margin-left: 4px; font-size: 14px; vertical-align: middle; }
+  
+  .tasks-container { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .task-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem 1.5rem; }
+  .task-card-title { font-size: 11px; font-family: var(--mono); letter-spacing: 2px; color: var(--muted); text-transform: uppercase; margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border); }
+  .task-item { display: flex; align-items: center; gap: 12px; padding: 0.6rem 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+  .task-item:last-child { border-bottom: none; }
+  .task-cb { 
+    appearance: none; width: 18px; height: 18px; border: 1.5px solid var(--border2);
+    border-radius: 5px; cursor: pointer; flex-shrink: 0; position: relative; transition: all 0.2s; 
+  }
+  .task-cb:checked { background: var(--accent); border-color: var(--accent); }
+  .task-cb:checked::after {
+    content: ''; position: absolute; top: 2px; left: 5px; width: 5px; height: 9px;
+    border: 2px solid #fff; border-top: none; border-left: none; transform: rotate(45deg);
+  }
+  .task-label { font-size: 14px; font-weight: 400; flex: 1; transition: all 0.2s; cursor: pointer; }
+  .task-item.done .task-label { color: var(--muted); text-decoration: line-through; }
+  .task-badge { font-size: 10px; font-family: var(--mono); color: var(--muted); background: var(--bg3); padding: 2px 8px; border-radius: 20px; white-space: nowrap; }
+  .task-badge.revision { color: var(--accent2); background: rgba(167,139,250,0.1); }
+  .task-badge.memorize { color: var(--amber); background: rgba(251,191,36,0.1); }
+  
+  .day-progress { margin-top: 1rem; }
+  .day-progress-label { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  
+  /* ===== FORMS & INPUTS ===== */
+  .form-input, .goals-toolbar input, #pyq-new-input {
+    background: var(--bg2); border: 1px solid var(--border2);
+    color: var(--text); border-radius: var(--radius-sm); padding: 9px 14px;
+    font-family: var(--sans); font-size: 14px; outline: none; transition: all 0.2s;
+  }
+  #pyq-new-input { background: var(--bg3); padding: 7px 12px; font-size: 13px; }
+  .form-input:focus, .goals-toolbar input:focus, #pyq-new-input:focus { 
+    border-color: var(--accent); 
+    box-shadow: 0 0 0 3px var(--accent-alpha); 
+  }
+  .form-input::placeholder, .goals-toolbar input::placeholder, #pyq-new-input::placeholder { color: var(--muted); }
+  
+  .btn {
+    padding: 8px 18px; border-radius: var(--radius-sm); font-family: var(--sans);
+    font-size: 13.5px; font-weight: 500; cursor: pointer; border: none; transition: all 0.2s;
+    user-select: none;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary { background: var(--accent); color: #fff; box-shadow: 0 2px 4px rgba(108,138,255,0.2); }
+  .btn-primary:hover { background: #5a78f0; }
+  .btn-danger { background: rgba(248,113,113,0.15); color: var(--red); border: 1px solid rgba(248,113,113,0.25); }
+  .btn-danger:hover { background: rgba(248,113,113,0.25); }
+  .btn-ghost { background: var(--bg3); color: var(--text); border: 1px solid var(--border2); }
+  .btn-ghost:hover { background: var(--bg4); }
+  .btn-sm { padding: 5px 12px; font-size: 12px; }
+  
+  /* ===== PERSONAL GOALS ===== */
+  .goals-toolbar { display: flex; gap: 10px; margin-bottom: 1.25rem; align-items: center; }
+  .goals-toolbar input { flex: 1; }
+  .goals-week-nav { display: flex; align-items: center; gap: 12px; margin-bottom: 1.25rem; }
+  .goals-week-label { font-family: var(--mono); font-size: 12px; color: var(--muted); flex: 1; text-align: center; }
+  
+  .goals-table { width: 100%; border-collapse: collapse; }
+  .goals-table th { background: var(--bg3); padding: 10px 14px; font-size: 11px; font-family: var(--mono); letter-spacing: 1.5px; color: var(--muted); text-transform: uppercase; border-bottom: 1px solid var(--border); text-align: left; }
+  .goals-table td { padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.04); vertical-align: middle; font-size: 14px; }
+  .goals-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .goals-name-cell { display: flex; align-items: center; gap: 10px; word-break: break-word; }
+  
+  /* ===== TABLES & LISTS ===== */
+  .test-form, .upcoming-form { display: grid; gap: 10px; margin-bottom: 1.5rem; align-items: end; }
+  .test-form { grid-template-columns: 2fr 1fr 1fr; }
+  .upcoming-form { grid-template-columns: 2fr 1fr auto; }
+  .form-field { display: flex; flex-direction: column; gap: 6px; }
+  .form-label { font-size: 11px; color: var(--muted); font-family: var(--mono); letter-spacing: 1px; text-transform: uppercase; }
+  
+  .test-table-wrap { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--border); }
+  .test-table { width: 100%; border-collapse: collapse; }
+  .test-table th { background: var(--bg3); padding: 12px 16px; font-size: 11px; font-family: var(--mono); letter-spacing: 1.5px; color: var(--muted); text-transform: uppercase; border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap; }
+  .test-table th:last-child { text-align: center; }
+  .test-table td { padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 14px; vertical-align: middle; }
+  .test-table tr:hover td { background: rgba(255,255,255,0.02); }
+  
+  .pct-badge { font-family: var(--mono); font-size: 13px; font-weight: 700; }
+  .pct-high { color: var(--green); }
+  .pct-mid { color: var(--amber); }
+  .pct-low { color: var(--red); }
+  
+  .trend-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 20px; font-family: var(--mono); font-size: 11px; font-weight: 700; white-space: nowrap; }
+  .trend-up { background: rgba(52,211,153,0.12); color: var(--green); }
+  .trend-down { background: rgba(248,113,113,0.12); color: var(--red); }
+  .trend-neutral { background: rgba(123,130,160,0.15); color: var(--muted); }
+  
+  .delete-row-btn, .delete-goal-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 16px; padding: 4px 8px; border-radius: 4px; transition: all 0.2s; line-height: 1; display: block; margin: 0 auto; }
+  .delete-row-btn:hover, .delete-goal-btn:hover { color: var(--red); background: rgba(248,113,113,0.1); }
+  
+  .empty-state { text-align: center; padding: 3rem 1rem; animation: fadeIn 0.4s ease; }
+  .empty-icon { font-size: 40px; margin-bottom: 1rem; opacity: 0.4; }
+  .empty-text { color: var(--muted); font-size: 14px; }
+  
+  /* ===== UPCOMING TESTS ===== */
+  .upcoming-list { display: flex; flex-direction: column; gap: 10px; }
+  .upcoming-item { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.25rem; display: flex; align-items: center; gap: 1rem; transition: border-color 0.2s; }
+  .upcoming-item.urgent { border-color: rgba(248,113,113,0.35); }
+  .upcoming-item.soon { border-color: rgba(251,191,36,0.3); }
+  .upcoming-item.ok { border-color: rgba(52,211,153,0.2); }
+  
+  .upcoming-countdown { background: var(--bg3); border-radius: var(--radius-sm); padding: 0.6rem 1rem; text-align: center; min-width: 70px; flex-shrink: 0; }
+  .countdown-num { font-family: var(--mono); font-size: 24px; font-weight: 700; line-height: 1; }
+  .countdown-label { font-size: 10px; color: var(--muted); margin-top: 2px; font-family: var(--mono); text-transform: uppercase;}
+  .upcoming-info { flex: 1; }
+  .upcoming-name { font-weight: 500; font-size: 15px; word-break: break-word; }
+  .upcoming-date { font-size: 13px; color: var(--muted); margin-top: 3px; font-family: var(--mono); }
+  .countdown-past { color: var(--muted); text-decoration: line-through; }
+  
+  /* ===== SCROLLBAR ===== */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 99px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+  
+  /* ===== RESPONSIVE ===== */
+  @media (max-width: 900px) {
+    .app { grid-template-columns: 1fr; }
+    .sidebar { position: static; height: auto; flex-direction: row; flex-wrap: wrap; padding: 1.5rem; z-index: 10; border-bottom: 1px solid var(--border); }
+    .sidebar-brand { padding: 0 1rem 0 0; border-right: 1px solid var(--border); border-bottom: none; margin-bottom: 0; margin-right: 1rem; display: flex; flex-direction: column; justify-content: center;}
+    .nav-section-label, .sidebar-footer { display: none; }
+    .nav-btn { width: auto; padding: 0.5rem 0.75rem; }
+    .main { padding: 1.5rem; }
+    .metrics-grid { grid-template-columns: repeat(3,1fr); }
+    .tasks-container { grid-template-columns: 1fr; }
+    .test-form, .upcoming-form { grid-template-columns: 1fr; gap: 15px; }
+  }
+  @media (max-width: 600px) {
+    .metrics-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-tag">JEE 2027</div>
+    <div class="brand-name">Study<span>Tracker</span></div>
+  </div>
+  <div class="nav-section-label">Navigate</div>
+  <button class="nav-btn active" onclick="showPage('dashboard')" id="nav-dashboard">
+    <span class="nav-icon">⊞</span> Dashboard
+  </button>
+  <button class="nav-btn" onclick="showPage('daily')" id="nav-daily">
+    <span class="nav-icon">✓</span> Daily Tasks
+  </button>
+  <button class="nav-btn" onclick="showPage('goals')" id="nav-goals">
+    <span class="nav-icon">◎</span> Personal Goals
+  </button>
+  <button class="nav-btn" onclick="showPage('tests')" id="nav-tests">
+    <span class="nav-icon">≡</span> Test Tracker
+  </button>
+  <button class="nav-btn" onclick="showPage('upcoming')" id="nav-upcoming">
+    <span class="nav-icon">◷</span> Upcoming Tests
+  </button>
+  <button class="nav-btn" onclick="showPage('lastyear')" id="nav-lastyear">
+    <span class="nav-icon">◈</span> Last Year Scores
+  </button>
+  <div class="sidebar-footer">
+    <div class="date-display">
+      <div class="date-day" id="sidebar-day"></div>
+      <div class="date-full" id="sidebar-date"></div>
+    </div>
+  </div>
+</aside>
+
+<main class="main">
+
+  <div class="page active" id="page-dashboard">
+    <div class="section-header">
+      <span class="section-icon">⊞</span>
+      <div>
+        <div class="section-title">JEE Readiness Dashboard</div>
+        <div class="section-subtitle">Real-time performance overview</div>
+      </div>
+    </div>
+    
+    <div class="readiness-block">
+      <div class="readiness-top">
+        <div>
+          <div class="readiness-label">Readiness Score</div>
+          <div class="readiness-score" id="dash-score">0<span>%</span></div>
+          <div id="dash-grade" class="readiness-grade grade-C">—</div>
+        </div>
+        <div class="readiness-summary">
+          <div style="font-size:12px;color:var(--muted);font-family:var(--mono);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Status</div>
+          <div id="dash-message" class="readiness-message">Loading your progress...</div>
+          <div style="margin-top:1rem;font-size:12px;color:var(--muted);">
+            Weights: Test Scores 30% · Daily Goals 30% · PYQ 15% · Revision 15% · Last Year 10%
+          </div>
+        </div>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="dash-progress-fill" style="width:0%;background:var(--accent)"></div>
+      </div>
+    </div>
+    
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-label">Test Average</div>
+        <div class="metric-value" id="dm-test" style="color:var(--accent)">—</div>
+        <div class="metric-sub">avg score %</div>
+        <div class="metric-bar"><div class="metric-bar-fill" id="dmb-test" style="background:var(--accent);width:0%"></div></div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Daily Goals</div>
+        <div class="metric-value" id="dm-daily" style="color:var(--green)">—</div>
+        <div class="metric-sub">tasks completed</div>
+        <div class="metric-bar"><div class="metric-bar-fill" id="dmb-daily" style="background:var(--green);width:0%"></div></div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">PYQ Progress</div>
+        <div class="metric-value" id="dm-pyq" style="color:var(--pink)">—</div>
+        <div class="metric-sub">daily pyq tasks done</div>
+        <div class="metric-bar"><div class="metric-bar-fill" id="dmb-pyq" style="background:var(--pink);width:0%"></div></div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Revision Rate</div>
+        <div class="metric-value" id="dm-rev" style="color:var(--amber)">—</div>
+        <div class="metric-sub">revision + memorize</div>
+        <div class="metric-bar"><div class="metric-bar-fill" id="dmb-rev" style="background:var(--amber);width:0%"></div></div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Last Year Avg</div>
+        <div class="metric-value" id="dm-lastyear" style="color:#22d3ee">—</div>
+        <div class="metric-sub">prev year scores</div>
+        <div class="metric-bar"><div class="metric-bar-fill" id="dmb-lastyear" style="background:#22d3ee;width:0%"></div></div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(300px, 1fr));gap:1rem;">
+      <div class="card">
+        <div style="font-size:11px;font-family:var(--mono);letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:1rem;">Upcoming Tests</div>
+        <div id="dash-upcoming"></div>
+      </div>
+      <div class="card">
+        <div style="font-size:11px;font-family:var(--mono);letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:1rem;">Recent Tests</div>
+        <div id="dash-recent-tests"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="page" id="page-daily">
+    <div class="section-header">
+      <span class="section-icon">✓</span>
+      <div>
+        <div class="section-title">Daily Tasks</div>
+        <div class="section-subtitle">Your study checklist — consistent every day</div>
+      </div>
+    </div>
+    <div class="week-strip" id="week-strip"></div>
+    <div style="margin-bottom:1rem;">
+      <div id="day-progress-bar-wrap" class="card card-sm">
+        <div class="day-progress-label">
+          <span id="day-label-top" style="font-weight: 500;">Today's progress</span>
+          <span id="day-pct-top" style="font-family: var(--mono); font-weight: 700; color: var(--text);">0%</span>
+        </div>
+        <div class="progress-track"><div class="progress-fill" id="day-progress-fill" style="width:0%;background:var(--green)"></div></div>
+      </div>
+    </div>
+    <div class="tasks-container" id="tasks-container"></div>
+  </div>
+
+  <div class="page" id="page-goals">
+    <div class="section-header">
+      <span class="section-icon">◎</span>
+      <div>
+        <div class="section-title">Personal Goals</div>
+        <div class="section-subtitle">Custom goals tracker — informational only, not counted in readiness score</div>
+      </div>
+    </div>
+    <div style="background:rgba(123,130,160,0.08);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:1.25rem;font-size:13px;color:var(--muted);">
+      These goals are for your own reference and do not contribute to the Readiness Score. For PYQ tracking that counts toward readiness, use the <strong style="color:var(--text);font-weight:500;">PYQ section inside Daily Tasks</strong>.
+    </div>
+    <div class="goals-toolbar">
+      <input type="text" id="new-goal-input" autocomplete="off" placeholder="Add a new goal (e.g. Daily Meditation)" onkeydown="if(event.key==='Enter')addGoal()"/>
+      <button class="btn btn-primary" onclick="addGoal()">+ Add Goal</button>
+    </div>
+    <div class="goals-week-nav">
+      <button class="btn btn-ghost btn-sm" onclick="changeGoalWeek(-1)">← Prev</button>
+      <div class="goals-week-label" id="goal-week-label">Week of —</div>
+      <button class="btn btn-ghost btn-sm" onclick="changeGoalWeek(1)">Next →</button>
+    </div>
+    <div style="overflow-x:auto;border-radius:var(--radius);border:1px solid var(--border);box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+      <table class="goals-table" id="goals-table">
+        <thead id="goals-thead"></thead>
+        <tbody id="goals-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="page" id="page-tests">
+    <div class="section-header">
+      <span class="section-icon">≡</span>
+      <div>
+        <div class="section-title">Test Tracker</div>
+        <div class="section-subtitle">Log mock tests and track your performance</div>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:1.5rem;">
+      <div style="font-size:11px;font-family:var(--mono);letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:1rem;">Add New Test</div>
+      <div class="test-form">
+        <div class="form-field">
+          <label class="form-label" for="t-name">Test Name</label>
+          <input class="form-input" id="t-name" autocomplete="off" placeholder="e.g. JEE Mock #3" />
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="t-total">Total Marks</label>
+          <input class="form-input" id="t-total" type="number" placeholder="300" />
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="t-obtained">Marks Obtained</label>
+          <input class="form-input" id="t-obtained" type="number" placeholder="240" />
+        </div>
+      </div>
+      <div>
+        <button class="btn btn-primary" onclick="addTest()">Add Test Entry</button>
+      </div>
+    </div>
+    <div class="test-table-wrap">
+      <table class="test-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Test Name</th>
+            <th>Total Marks</th>
+            <th>Marks Obtained</th>
+            <th>Percentage</th>
+            <th>Trend vs Prev 2</th>
+            <th style="text-align:center">Delete</th>
+          </tr>
+        </thead>
+        <tbody id="test-tbody"></tbody>
+      </table>
+    </div>
+    <div id="test-empty" class="empty-state" style="display:none">
+      <div class="empty-icon">📋</div>
+      <div class="empty-text">No tests logged yet. Add your first test above.</div>
+    </div>
+  </div>
+
+  <div class="page" id="page-upcoming">
+    <div class="section-header">
+      <span class="section-icon">◷</span>
+      <div>
+        <div class="section-title">Upcoming Tests</div>
+        <div class="section-subtitle">Schedule and countdown to important exams</div>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:1.5rem;">
+      <div style="font-size:11px;font-family:var(--mono);letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:1rem;">Schedule a Test</div>
+      <div class="upcoming-form">
+        <div class="form-field">
+          <label class="form-label" for="up-name">Test Name</label>
+          <input class="form-input" id="up-name" autocomplete="off" placeholder="e.g. JEE Advanced Mock" />
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="up-date">Date</label>
+          <input class="form-input" id="up-date" type="date" />
+        </div>
+        <div class="form-field" style="justify-content:flex-end">
+          <button class="btn btn-primary" onclick="addUpcoming()">+ Schedule</button>
+        </div>
+      </div>
+    </div>
+    <div class="upcoming-list" id="upcoming-list"></div>
+    <div id="upcoming-empty" class="empty-state" style="display:none">
+      <div class="empty-icon">📅</div>
+      <div class="empty-text">No upcoming tests scheduled. Add one above.</div>
+    </div>
+  </div>
+
+  <div class="page" id="page-lastyear">
+    <div class="section-header">
+      <span class="section-icon">◈</span>
+      <div>
+        <div class="section-title">Last Year's Test Scores</div>
+        <div class="section-subtitle">Log previous year results — contributes 10% to your readiness score</div>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:1.5rem;">
+      <div style="font-size:11px;font-family:var(--mono);letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:1rem;">Add Last Year Entry</div>
+      <div class="test-form" style="grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));">
+        <div class="form-field" style="grid-column: span 2;">
+          <label class="form-label" for="ly-name">Test / Exam Name</label>
+          <input class="form-input" id="ly-name" autocomplete="off" placeholder="e.g. JEE Mains Jan 2025" />
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="ly-year">Year</label>
+          <input class="form-input" id="ly-year" type="number" placeholder="2025" min="2000" max="2099" />
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="ly-total">Total</label>
+          <input class="form-input" id="ly-total" type="number" placeholder="300" />
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="ly-obtained">Obtained</label>
+          <input class="form-input" id="ly-obtained" type="number" placeholder="240" />
+        </div>
+      </div>
+      <div style="margin-top:10px;">
+        <button class="btn btn-primary" onclick="addLastYear()">Add Entry</button>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(250px, 1fr));gap:1rem;margin-bottom:1.5rem;">
+      <div class="card" style="background:rgba(34,211,238,0.05);border-color:rgba(34,211,238,0.2);">
+        <div style="font-size:11px;font-family:var(--mono);letter-spacing:2px;color:#22d3ee;text-transform:uppercase;margin-bottom:8px;">Overall Average</div>
+        <div style="font-family:var(--mono);font-size:36px;font-weight:700;color:#22d3ee;" id="ly-avg-display">—</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px;">across all entries</div>
+      </div>
+      <div class="card">
+        <div style="font-size:11px;font-family:var(--mono);letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:8px;">Readiness Contribution</div>
+        <div style="font-family:var(--mono);font-size:36px;font-weight:700;color:var(--text);" id="ly-contrib-display">—</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px;">10% weight → score contribution</div>
+        <div class="metric-bar" style="margin-top:12px;"><div class="metric-bar-fill" id="ly-contrib-bar" style="background:#22d3ee;width:0%"></div></div>
+      </div>
+    </div>
+
+    <div class="test-table-wrap">
+      <table class="test-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Test / Exam Name</th>
+            <th>Year</th>
+            <th>Total Marks</th>
+            <th>Marks Obtained</th>
+            <th>Percentage</th>
+            <th>vs Current Avg</th>
+            <th style="text-align:center">Delete</th>
+          </tr>
+        </thead>
+        <tbody id="ly-tbody"></tbody>
+      </table>
+    </div>
+    <div id="ly-empty" class="empty-state" style="display:none">
+      <div class="empty-icon">📊</div>
+      <div class="empty-text">No last year scores added yet. Add your previous year results above.</div>
+    </div>
+  </div>
+
+</main>
+</div>
+
+<script>
+// ===== UTILS =====
+// Prevent XSS injections when rendering user data to the DOM
+function esc(str) {
+  if (typeof str !== 'string') return str;
+  return str.replace(/[&<>'"]/g, tag => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+  }[tag]));
+}
+
+// ===== DATA MODEL =====
+const TASKS = [
+  { id: 'class_notes',     label: 'Class Notes',         badge: 'Core',     badgeClass: '' },
+  { id: 'revision_1st',   label: 'Revision - 1st',       badge: 'Revision', badgeClass: 'revision' },
+  { id: 'class_questions',label: 'Class Questions',      badge: 'Practice', badgeClass: '' },
+  { id: 'homework',       label: 'Home-Work',            badge: 'HW',       badgeClass: '' },
+  { id: 'memorize',       label: 'Memorize (R-02)',      badge: 'Memorize', badgeClass: 'memorize' }
+];
+const STANDARD_TASKS = ['class_notes','class_questions','homework'];
+const REVISION_TASKS = ['revision_1st','memorize'];
+
+const DAYS_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+function load(key, def) {
+  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : def; } catch { return def; }
+}
+function save(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
+
+function dateKey(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function today() { return new Date(); }
+function todayKey() { return dateKey(today()); }
+
+// ===== STATE =====
+let state = {
+  dailyTasks: load('dailyTasks', {}),
+  goals: load('goals', []),
+  goalChecks: load('goalChecks', {}),
+  pyqSubGoals: load('pyqSubGoals', [{id:'pyq_default',label:'PYQ Questions'}]),
+  pyqChecks: load('pyqChecks', {}),
+  tests: load('tests', []),
+  upcoming: load('upcoming', []),
+  lastYearTests: load('lastYearTests', []),
+  selectedDay: todayKey(),
+  goalWeekOffset: 0
+};
+
+function saveAll() {
+  save('dailyTasks', state.dailyTasks);
+  save('goals', state.goals);
+  save('goalChecks', state.goalChecks);
+  save('pyqSubGoals', state.pyqSubGoals);
+  save('pyqChecks', state.pyqChecks);
+  save('tests', state.tests);
+  save('upcoming', state.upcoming);
+  save('lastYearTests', state.lastYearTests);
+}
+
+// ===== NAVIGATION =====
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  document.getElementById('nav-'+name).classList.add('active');
+  if(name==='dashboard') renderDashboard();
+  if(name==='daily') renderDaily();
+  if(name==='goals') renderGoals();
+  if(name==='tests') renderTests();
+  if(name==='upcoming') renderUpcoming();
+  if(name==='lastyear') renderLastYear();
+}
+
+// ===== DATE HELPERS =====
+function getWeekDays(weekOffset) {
+  const t = today();
+  const dayOfWeek = t.getDay();
+  const monday = new Date(t);
+  monday.setDate(t.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1) + weekOffset * 7);
+  const days = [];
+  for(let i=0;i<7;i++) {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    days.push(d);
+  }
+  return days;
+}
+
+function formatDateDisplay(d) {
+  return `${DAYS_SHORT[d.getDay()]}, ${d.getDate()} ${MONTHS[d.getMonth()]}`;
+}
+
+// ===== SIDEBAR DATE =====
+function updateSidebarDate() {
+  const t = today();
+  document.getElementById('sidebar-day').textContent = DAYS_SHORT[t.getDay()].toUpperCase();
+  document.getElementById('sidebar-date').textContent = `${t.getDate()} ${MONTHS[t.getMonth()]} ${t.getFullYear()}`;
+}
+
+// ===== DASHBOARD =====
+function calcMetrics() {
+  let testPct = 0;
+  if(state.tests.length > 0) {
+    const avg = state.tests.reduce((s,t) => s + (t.obtained/t.total*100), 0) / state.tests.length;
+    testPct = isNaN(avg) ? 0 : Math.min(100, avg);
+  }
+
+  let dailyTotal = 0, dailyDone = 0;
+  Object.values(state.dailyTasks).forEach(dayData => {
+    STANDARD_TASKS.forEach(tid => {
+      dailyTotal++;
+      if(dayData[tid]) dailyDone++;
+    });
+  });
+  const dailyPct = dailyTotal > 0 ? (dailyDone/dailyTotal*100) : 0;
+
+  let goalTotal = 0, goalDone = 0;
+  Object.values(state.pyqChecks).forEach(dayData => {
+    Object.values(dayData).forEach(v => { goalTotal++; if(v) goalDone++; });
+  });
+  const goalPct = goalTotal > 0 ? (goalDone/goalTotal*100) : 0;
+
+  let revTotal = 0, revDone = 0;
+  Object.values(state.dailyTasks).forEach(dayData => {
+    REVISION_TASKS.forEach(tid => {
+      revTotal++;
+      if(dayData[tid]) revDone++;
+    });
+  });
+  const revPct = revTotal > 0 ? (revDone/revTotal*100) : 0;
+
+  let lastYearPct = 0;
+  if(state.lastYearTests.length > 0) {
+    const avg = state.lastYearTests.reduce((s,t) => s + (t.obtained/t.total*100), 0) / state.lastYearTests.length;
+    lastYearPct = isNaN(avg) ? 0 : Math.min(100, avg);
+  }
+
+  const score = testPct*0.30 + dailyPct*0.30 + goalPct*0.15 + revPct*0.15 + lastYearPct*0.10;
+  return { score, testPct, dailyPct, goalPct, revPct, lastYearPct };
+}
+
+function renderDashboard() {
+  const m = calcMetrics();
+  const score = Math.round(m.score);
+
+  document.getElementById('dash-score').innerHTML = score + '<span>%</span>';
+  const fill = document.getElementById('dash-progress-fill');
+  fill.style.width = score + '%';
+
+  let grade, gradeClass, msg;
+  if(score >= 75) {
+    grade='A — Excellent'; gradeClass='grade-A';
+    msg='Outstanding performance! You are well-prepared for JEE. Maintain consistency and focus on weak areas.';
+    fill.style.background='var(--green)';
+  } else if(score >= 50) {
+    grade='B — Good'; gradeClass='grade-B';
+    msg='Solid progress. Keep pushing your test scores and daily task completion to reach the top tier.';
+    fill.style.background='var(--amber)';
+  } else {
+    grade='C — Needs Work'; gradeClass='grade-C';
+    msg='You\'re getting started. Consistency is key — focus on completing daily tasks every single day.';
+    fill.style.background='var(--red)';
+  }
+  document.getElementById('dash-grade').textContent = grade;
+  document.getElementById('dash-grade').className = 'readiness-grade ' + gradeClass;
+  document.getElementById('dash-message').textContent = msg;
+
+  const metrics = [
+    { id:'test', val: m.testPct },
+    { id:'daily', val: m.dailyPct },
+    { id:'pyq', val: m.goalPct },
+    { id:'rev', val: m.revPct },
+    { id:'lastyear', val: m.lastYearPct }
+  ];
+  metrics.forEach(mt => {
+    document.getElementById('dm-'+mt.id).textContent = Math.round(mt.val)+'%';
+    document.getElementById('dmb-'+mt.id).style.width = Math.round(mt.val)+'%';
+  });
+
+  const now = today(); now.setHours(0,0,0,0);
+  const upcoming = state.upcoming
+    .filter(u => new Date(u.date+'T00:00:00') >= now)
+    .sort((a,b) => new Date(a.date) - new Date(b.date))
+    .slice(0,3);
+    
+  const dashUp = document.getElementById('dash-upcoming');
+  if(upcoming.length === 0) {
+    dashUp.innerHTML = '<div style="color:var(--muted);font-size:13px;">No upcoming tests</div>';
+  } else {
+    dashUp.innerHTML = upcoming.map(u => {
+      const diff = Math.ceil((new Date(u.date+'T00:00:00') - now)/(1000*60*60*24));
+      const color = diff<=3?'var(--red)':diff<=7?'var(--amber)':'var(--green)';
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:13.5px;">
+        <span style="font-weight:500;">${esc(u.name)}</span>
+        <span style="font-family:var(--mono);font-size:12px;color:${color};background:var(--bg3);padding:2px 8px;border-radius:12px;">${diff}d</span>
+      </div>`;
+    }).join('');
+  }
+
+  const recent = [...state.tests].reverse().slice(0,4);
+  const dashRecent = document.getElementById('dash-recent-tests');
+  if(recent.length === 0) {
+    dashRecent.innerHTML = '<div style="color:var(--muted);font-size:13px;">No tests logged yet</div>';
+  } else {
+    dashRecent.innerHTML = recent.map(t => {
+      const pct = Math.round(t.obtained/t.total*100);
+      const col = pct>=70?'var(--green)':pct>=50?'var(--amber)':'var(--red)';
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:13.5px;">
+        <span style="font-weight:500;">${esc(t.name)}</span>
+        <span style="font-family:var(--mono);font-size:13px;font-weight:700;color:${col};">${pct}%</span>
+      </div>`;
+    }).join('');
+  }
+}
+
+// ===== DAILY TASKS =====
+function renderDaily() {
+  const strip = document.getElementById('week-strip');
+  const tk = todayKey();
+  
+  // FIX: Calculate the week to display based on the currently selected day
+  const currentSelDate = new Date(state.selectedDay + 'T00:00:00');
+  const dayOfWeek = currentSelDate.getDay();
+  const monday = new Date(currentSelDate);
+  monday.setDate(currentSelDate.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1));
+  
+  const days = [];
+  for(let i=0; i<7; i++) {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    days.push(d);
+  }
+
+  strip.innerHTML = '';
+  
+  const prevBtn = document.createElement('button');
+  prevBtn.className = 'day-pill';
+  prevBtn.textContent = '← Prev';
+  prevBtn.style.cssText = 'font-size:11px;padding:6px 10px;';
+  prevBtn.onclick = () => {
+    const cur = new Date(state.selectedDay+'T00:00:00');
+    cur.setDate(cur.getDate()-7);
+    state.selectedDay = dateKey(cur);
+    renderDaily();
+  };
+  strip.appendChild(prevBtn);
+
+  days.forEach(d => {
+    const dk = dateKey(d);
+    const isToday = dk === tk;
+    const isSelected = dk === state.selectedDay;
+    const hasData = state.dailyTasks[dk] && Object.values(state.dailyTasks[dk]).some(v=>v);
+    const btn = document.createElement('button');
+    btn.className = 'day-pill' + (isSelected?' active':'') + (isToday?' today':'') + (hasData?' has-data':'');
+    btn.textContent = `${DAYS_SHORT[d.getDay()]} ${d.getDate()}`;
+    btn.onclick = () => { state.selectedDay = dk; renderDaily(); };
+    strip.appendChild(btn);
+  });
+
+  const nextBtn = document.createElement('button');
+  nextBtn.className = 'day-pill';
+  nextBtn.textContent = 'Next →';
+  nextBtn.style.cssText = 'font-size:11px;padding:6px 10px;';
+  nextBtn.onclick = () => {
+    const cur = new Date(state.selectedDay+'T00:00:00');
+    cur.setDate(cur.getDate()+7);
+    state.selectedDay = dateKey(cur);
+    renderDaily();
+  };
+  strip.appendChild(nextBtn);
+
+  const dayData = state.dailyTasks[state.selectedDay] || {};
+  const pyqData = state.pyqChecks[state.selectedDay] || {};
+  const selDate = new Date(state.selectedDay+'T00:00:00');
+  const isToday = state.selectedDay === tk;
+  
+  document.getElementById('day-label-top').textContent = isToday ? "Today's Progress" : `${formatDateDisplay(selDate)} Progress`;
+  const totalItems = TASKS.length + state.pyqSubGoals.length;
+  const doneTasks = TASKS.filter(t => dayData[t.id]).length;
+  const donePyq = state.pyqSubGoals.filter(g => pyqData[g.id]).length;
+  const pct = totalItems > 0 ? Math.round((doneTasks + donePyq) / totalItems * 100) : 0;
+  document.getElementById('day-pct-top').textContent = pct+'%';
+  document.getElementById('day-progress-fill').style.width = pct+'%';
+
+  const container = document.getElementById('tasks-container');
+  container.innerHTML = '';
+
+  function renderGroup(tasks, title) {
+    const card = document.createElement('div');
+    card.className = 'task-card';
+    card.innerHTML = `<div class="task-card-title">${title}</div>`;
+    tasks.forEach(task => {
+      const checked = !!dayData[task.id];
+      const item = document.createElement('div');
+      item.className = 'task-item' + (checked?' done':'');
+      item.innerHTML = `
+        <input type="checkbox" class="task-cb" ${checked?'checked':''} id="cb-${task.id}">
+        <label class="task-label" for="cb-${task.id}">${task.label}</label>
+        <span class="task-badge ${task.badgeClass}">${task.badge}</span>`;
+      item.querySelector('.task-cb').onchange = (e) => {
+        if(!state.dailyTasks[state.selectedDay]) state.dailyTasks[state.selectedDay]={};
+        state.dailyTasks[state.selectedDay][task.id] = e.target.checked;
+        saveAll(); renderDaily();
+      };
+      card.appendChild(item);
+    });
+    return card;
+  }
+  container.appendChild(renderGroup(TASKS.slice(0,3), 'Core Tasks'));
+  container.appendChild(renderGroup(TASKS.slice(3), 'Revision & Memory'));
+
+  // PYQ card — full width, with configurable sub-goals
+  const pyqCard = document.createElement('div');
+  pyqCard.className = 'task-card';
+  pyqCard.style.cssText = 'grid-column:1/-1;';
+  const pyqDoneCount = state.pyqSubGoals.filter(g => pyqData[g.id]).length;
+  const pyqTotal = state.pyqSubGoals.length;
+  pyqCard.innerHTML = `
+    <div class="task-card-title" style="display:flex;justify-content:space-between;align-items:center;">
+      <span>PYQ Questions <span style="color:var(--pink);margin-left:6px;">${pyqDoneCount}/${pyqTotal}</span></span>
+      <span style="font-size:10px;color:var(--muted);font-family:var(--mono);text-transform:lowercase;">counts toward readiness · 15%</span>
+    </div>
+    <div id="pyq-items-list"></div>
+    <div style="display:flex;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
+      <input type="text" id="pyq-new-input" autocomplete="off" placeholder="Add PYQ sub-goal (e.g. Maths 2022 Paper)" 
+        onkeydown="if(event.key==='Enter')addPyqSubGoal()"/>
+      <button class="btn btn-primary btn-sm" onclick="addPyqSubGoal()">+ Add</button>
+    </div>`;
+  container.appendChild(pyqCard);
+
+  // Render PYQ items
+  const pyqList = pyqCard.querySelector('#pyq-items-list');
+  if(state.pyqSubGoals.length === 0) {
+    pyqList.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:8px 0;">No PYQ sub-goals yet. Add one below.</div>';
+  } else {
+    state.pyqSubGoals.forEach(goal => {
+      const checked = !!pyqData[goal.id];
+      const item = document.createElement('div');
+      item.className = 'task-item' + (checked?' done':'');
+      item.style.cssText = 'display:flex;align-items:center;gap:12px;';
+      item.innerHTML = `
+        <input type="checkbox" class="task-cb" ${checked?'checked':''} id="pyq-cb-${goal.id}">
+        <label class="task-label" for="pyq-cb-${goal.id}" style="flex:1;">${esc(goal.label)}</label>
+        <span class="task-badge" style="color:var(--pink);background:rgba(244,114,182,0.1);">PYQ</span>
+        <button class="delete-goal-btn" onclick="removePyqSubGoal('${goal.id}')" title="Remove">✕</button>`;
+      item.querySelector('.task-cb').onchange = (e) => {
+        if(!state.pyqChecks[state.selectedDay]) state.pyqChecks[state.selectedDay]={};
+        state.pyqChecks[state.selectedDay][goal.id] = e.target.checked;
+        saveAll(); renderDaily();
+      };
+      pyqList.appendChild(item);
+    });
+  }
+}
+
+function addPyqSubGoal() {
+  const input = document.getElementById('pyq-new-input');
+  const label = input.value.trim();
+  if(!label) return;
+  state.pyqSubGoals.push({id:'pyq_'+Date.now(), label});
+  input.value = '';
+  saveAll(); renderDaily();
+}
+
+function removePyqSubGoal(id) {
+  state.pyqSubGoals = state.pyqSubGoals.filter(g => g.id !== id);
+  Object.keys(state.pyqChecks).forEach(dk => { delete state.pyqChecks[dk][id]; });
+  saveAll(); renderDaily();
+}
+
+// ===== GOALS =====
+function getGoalWeekKey(offset) {
+  const days = getWeekDays(offset);
+  return dateKey(days[0]);
+}
+
+function changeGoalWeek(dir) {
+  state.goalWeekOffset += dir;
+  renderGoals();
+}
+
+function addGoal() {
+  const input = document.getElementById('new-goal-input');
+  const label = input.value.trim();
+  if(!label) return;
+  const id = 'goal_' + Date.now();
+  state.goals.push({id, label});
+  input.value = '';
+  saveAll();
+  renderGoals();
+}
+
+function removeGoal(id) {
+  state.goals = state.goals.filter(g => g.id !== id);
+  saveAll();
+  renderGoals();
+}
+
+function setGoalCheck(weekKey, dayKey, goalId, val) {
+  if(!state.goalChecks[weekKey]) state.goalChecks[weekKey]={};
+  if(!state.goalChecks[weekKey][dayKey]) state.goalChecks[weekKey][dayKey]={};
+  state.goalChecks[weekKey][dayKey][goalId] = val;
+  saveAll();
+}
+
+function renderGoals() {
+  const days = getWeekDays(state.goalWeekOffset);
+  const wk = getGoalWeekKey(state.goalWeekOffset);
+  const weekData = state.goalChecks[wk] || {};
+
+  const d0 = days[0], d6 = days[6];
+  document.getElementById('goal-week-label').textContent =
+    `${d0.getDate()} ${MONTHS[d0.getMonth()]} – ${d6.getDate()} ${MONTHS[d6.getMonth()]} ${d6.getFullYear()}`;
+
+  const thead = document.getElementById('goals-thead');
+  thead.innerHTML = '<tr><th style="min-width:160px;">Goal</th>' +
+    days.map(d => `<th style="text-align:center;min-width:54px;">${DAYS_SHORT[d.getDay()]}<br><span style="font-weight:400;font-size:10px;color:var(--muted)">${d.getDate()}</span></th>`).join('') +
+    '<th style="text-align:center;">Done</th><th></th></tr>';
+
+  const tbody = document.getElementById('goals-tbody');
+  if(state.goals.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="${9}" style="text-align:center;color:var(--muted);padding:2rem;">No goals yet. Add one above.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = state.goals.map(goal => {
+    const cells = days.map(d => {
+      const dk = dateKey(d);
+      const checked = !!(weekData[dk] && weekData[dk][goal.id]);
+      return `<td style="text-align:center;"><input type="checkbox" class="task-cb" style="margin: 0 auto; display: block;" ${checked?'checked':''}
+        onchange="setGoalCheck('${wk}','${dk}','${goal.id}',this.checked);renderGoals()"></td>`;
+    }).join('');
+    const doneCount = days.filter(d => {
+      const dk = dateKey(d);
+      return weekData[dk] && weekData[dk][goal.id];
+    }).length;
+    return `<tr>
+      <td><div class="goals-name-cell"><span style="font-size:14px; font-weight: 500;">${esc(goal.label)}</span></div></td>
+      ${cells}
+      <td style="text-align:center;font-family:var(--mono);font-size:13px;color:var(--green);font-weight:700;">${doneCount}/7</td>
+      <td><button class="delete-goal-btn" onclick="removeGoal('${goal.id}')" title="Remove goal">✕</button></td>
+    </tr>`;
+  }).join('');
+}
+
+// ===== TEST TRACKER =====
+function addTest() {
+  const name = document.getElementById('t-name').value.trim();
+  const total = parseFloat(document.getElementById('t-total').value);
+  const obtained = parseFloat(document.getElementById('t-obtained').value);
+  
+  if(!name || isNaN(total) || isNaN(obtained) || total <= 0) {
+    alert('Please fill in all fields correctly.'); return;
+  }
+  if(obtained > total) { alert('Marks obtained cannot exceed total marks.'); return; }
+  
+  state.tests.push({ id: Date.now(), name, total, obtained });
+  document.getElementById('t-name').value='';
+  document.getElementById('t-total').value='';
+  document.getElementById('t-obtained').value='';
+  saveAll();
+  renderTests();
+}
+
+function deleteTest(id) {
+  state.tests = state.tests.filter(t => t.id !== id);
+  saveAll();
+  renderTests();
+}
+
+function renderTests() {
+  const tbody = document.getElementById('test-tbody');
+  const empty = document.getElementById('test-empty');
+
+  if(state.tests.length === 0) {
+    tbody.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  tbody.innerHTML = state.tests.map((t, i) => {
+    const pct = t.obtained/t.total*100;
+    const pctStr = pct.toFixed(1)+'%';
+    const pctClass = pct>=70?'pct-high':pct>=50?'pct-mid':'pct-low';
+
+    let trendHTML = '<span class="trend-badge trend-neutral">—</span>';
+    if(i >= 2) {
+      const prev2avg = (state.tests[i-1].obtained/state.tests[i-1].total + state.tests[i-2].obtained/state.tests[i-2].total)/2*100;
+      const diff = pct - prev2avg;
+      if(diff > 0) trendHTML = `<span class="trend-badge trend-up">▲ +${diff.toFixed(1)}%</span>`;
+      else if(diff < 0) trendHTML = `<span class="trend-badge trend-down">▼ ${diff.toFixed(1)}%</span>`;
+      else trendHTML = `<span class="trend-badge trend-neutral">= 0%</span>`;
+    } else if(i === 1) {
+      const prev = state.tests[i-1].obtained/state.tests[i-1].total*100;
+      const diff = pct - prev;
+      if(diff > 0) trendHTML = `<span class="trend-badge trend-up">▲ +${diff.toFixed(1)}%</span>`;
+      else if(diff < 0) trendHTML = `<span class="trend-badge trend-down">▼ ${diff.toFixed(1)}%</span>`;
+      else trendHTML = `<span class="trend-badge trend-neutral">= 0%</span>`;
+    }
+
+    return `<tr>
+      <td style="font-family:var(--mono);color:var(--muted);font-size:12px;">${i+1}</td>
+      <td style="font-weight:500;">${esc(t.name)}</td>
+      <td style="font-family:var(--mono);">${t.total}</td>
+      <td style="font-family:var(--mono);">${t.obtained}</td>
+      <td><span class="pct-badge ${pctClass}">${pctStr}</span></td>
+      <td>${trendHTML}</td>
+      <td><button class="delete-row-btn" onclick="deleteTest(${t.id})" title="Delete">✕</button></td>
+    </tr>`;
+  }).join('');
+}
+
+// ===== UPCOMING TESTS =====
+function addUpcoming() {
+  const name = document.getElementById('up-name').value.trim();
+  const date = document.getElementById('up-date').value;
+  if(!name || !date) { alert('Please fill in both fields.'); return; }
+  state.upcoming.push({ id: Date.now(), name, date });
+  state.upcoming.sort((a,b) => new Date(a.date)-new Date(b.date));
+  document.getElementById('up-name').value='';
+  document.getElementById('up-date').value='';
+  saveAll();
+  renderUpcoming();
+}
+
+function deleteUpcoming(id) {
+  state.upcoming = state.upcoming.filter(u => u.id !== id);
+  saveAll();
+  renderUpcoming();
+}
+
+function renderUpcoming() {
+  const list = document.getElementById('upcoming-list');
+  const empty = document.getElementById('upcoming-empty');
+  const now = today(); now.setHours(0,0,0,0);
+
+  if(state.upcoming.length === 0) {
+    list.innerHTML=''; empty.style.display='block'; return;
+  }
+  empty.style.display='none';
+
+  list.innerHTML = state.upcoming.map(u => {
+    const testDate = new Date(u.date+'T00:00:00');
+    const diff = Math.ceil((testDate - now)/(1000*60*60*24));
+    const isPast = diff < 0;
+    let urgClass = 'ok';
+    if(!isPast){if(diff<=3)urgClass='urgent';else if(diff<=7)urgClass='soon';}
+    
+    let countdownHTML;
+    if(isPast) {
+      countdownHTML = `<div class="upcoming-countdown">
+        <div class="countdown-num countdown-past" style="font-size:16px;">done</div>
+        <div class="countdown-label">past</div>
+      </div>`;
+    } else if(diff === 0) {
+      countdownHTML = `<div class="upcoming-countdown">
+        <div class="countdown-num" style="color:var(--red);">TODAY</div>
+        <div class="countdown-label"></div>
+      </div>`;
+    } else {
+      const col = diff<=3?'var(--red)':diff<=7?'var(--amber)':'var(--green)';
+      countdownHTML = `<div class="upcoming-countdown">
+        <div class="countdown-num" style="color:${col};">${diff}</div>
+        <div class="countdown-label">days left</div>
+      </div>`;
+    }
+
+    const dDisplay = `${testDate.getDate()} ${MONTHS[testDate.getMonth()]} ${testDate.getFullYear()}`;
+
+    return `<div class="upcoming-item ${urgClass}">
+      ${countdownHTML}
+      <div class="upcoming-info">
+        <div class="upcoming-name ${isPast?'countdown-past':''}">${esc(u.name)}</div>
+        <div class="upcoming-date">${dDisplay}</div>
+      </div>
+      <button class="delete-row-btn" onclick="deleteUpcoming(${u.id})" title="Remove">✕</button>
+    </div>`;
+  }).join('');
+}
+
+// ===== LAST YEAR SCORES =====
+function addLastYear() {
+  const name = document.getElementById('ly-name').value.trim();
+  const year = parseInt(document.getElementById('ly-year').value);
+  const total = parseFloat(document.getElementById('ly-total').value);
+  const obtained = parseFloat(document.getElementById('ly-obtained').value);
+  if(!name || isNaN(total) || isNaN(obtained) || total <= 0) {
+    alert('Please fill in all fields correctly.'); return;
+  }
+  if(obtained > total) { alert('Marks obtained cannot exceed total marks.'); return; }
+  state.lastYearTests.push({ id: Date.now(), name, year: isNaN(year)?'—':year, total, obtained });
+  document.getElementById('ly-name').value='';
+  document.getElementById('ly-year').value='';
+  document.getElementById('ly-total').value='';
+  document.getElementById('ly-obtained').value='';
+  saveAll();
+  renderLastYear();
+}
+
+function deleteLastYear(id) {
+  state.lastYearTests = state.lastYearTests.filter(t => t.id !== id);
+  saveAll();
+  renderLastYear();
+}
+
+function renderLastYear() {
+  const tbody = document.getElementById('ly-tbody');
+  const empty = document.getElementById('ly-empty');
+
+  let lyAvg = 0;
+  if(state.lastYearTests.length > 0) {
+    lyAvg = state.lastYearTests.reduce((s,t) => s + (t.obtained/t.total*100), 0) / state.lastYearTests.length;
+  }
+  const currentAvg = state.tests.length > 0
+    ? state.tests.reduce((s,t) => s + (t.obtained/t.total*100), 0) / state.tests.length : 0;
+
+  document.getElementById('ly-avg-display').textContent = state.lastYearTests.length > 0 ? lyAvg.toFixed(1)+'%' : '—';
+  const contrib = lyAvg * 0.10;
+  document.getElementById('ly-contrib-display').textContent = state.lastYearTests.length > 0 ? '+'+contrib.toFixed(1)+' pts' : '—';
+  document.getElementById('ly-contrib-bar').style.width = Math.round(lyAvg)+'%';
+
+  if(state.lastYearTests.length === 0) {
+    tbody.innerHTML=''; empty.style.display='block'; return;
+  }
+  empty.style.display='none';
+
+  tbody.innerHTML = state.lastYearTests.map((t, i) => {
+    const pct = t.obtained/t.total*100;
+    const pctStr = pct.toFixed(1)+'%';
+    const pctClass = pct>=70?'pct-high':pct>=50?'pct-mid':'pct-low';
+
+    let vsHTML = '<span class="trend-badge trend-neutral">—</span>';
+    if(currentAvg > 0) {
+      const diff = pct - currentAvg;
+      if(diff > 0.5) vsHTML = `<span class="trend-badge trend-up">▲ +${diff.toFixed(1)}%</span>`;
+      else if(diff < -0.5) vsHTML = `<span class="trend-badge trend-down">▼ ${Math.abs(diff).toFixed(1)}%</span>`;
+      else vsHTML = `<span class="trend-badge trend-neutral">≈ 0%</span>`;
+    }
+
+    return `<tr>
+      <td style="font-family:var(--mono);color:var(--muted);font-size:12px;">${i+1}</td>
+      <td style="font-weight:500;">${esc(t.name)}</td>
+      <td style="font-family:var(--mono);color:var(--muted);">${t.year}</td>
+      <td style="font-family:var(--mono);">${t.total}</td>
+      <td style="font-family:var(--mono);">${t.obtained}</td>
+      <td><span class="pct-badge ${pctClass}">${pctStr}</span></td>
+      <td>${vsHTML}</td>
+      <td><button class="delete-row-btn" onclick="deleteLastYear(${t.id})" title="Delete">✕</button></td>
+    </tr>`;
+  }).join('');
+}
+
+// ===== INIT =====
+updateSidebarDate();
+renderDashboard();
+</script>
+</body>
+</html>
